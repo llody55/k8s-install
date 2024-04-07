@@ -1,0 +1,49 @@
+apiVersion: kubeadm.k8s.io/v1beta3
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.0123456789abcdef
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 192.168.111.130  # 当前主机IP
+  bindPort: 6443
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock  # 当前容器运行时，如果没有变化不要动
+  imagePullPolicy: IfNotPresent
+  name: node1 # 当前主机名
+  taints: 
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+---
+apiServer:
+  certSANs:
+  - 192.168.111.130  # master1的IP
+  # - 192.168.111.131  # master2的IP
+  # - 192.168.111.133  # master3的IP
+  - apiserver.cluster.local  # hosts中的虚拟主机名，，一般这里填写负载均衡的VIP的地址
+  - 127.0.0.1
+  extraArgs:
+    authorization-mode: Node,RBAC
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta3
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controlPlaneEndpoint: "apiserver.cluster.local:6443"   # 填写负载均衡的VIP地址
+controllerManager: {}
+# dns: 
+#   type: CoreDNS  # 使用CoreDNS进行解析,在1.26版本中被移除，因为 CoreDNS 是 kubeadm 所支持 的唯一 DNS 服务器类型。
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: registry.aliyuncs.com/google_containers   # 镜像源地址
+kind: ClusterConfiguration
+kubernetesVersion: 1.25.4   # K8S版本
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 10.244.0.0/16  # POD的IP段
+  serviceSubnet: 10.96.0.0/12  # svc的IP段
+scheduler: {}
